@@ -1,0 +1,31 @@
+app/api/dashboard/financial/route.ts(20,21): error TS2353: Object literal may only specify known properties, and 'balance_due' does not exist in type 'InvoiceMasterSumAggregateInputType'.
+app/api/dashboard/financial/route.ts(23,17): error TS2322: Type '{ payment_status: { in: string[]; }; invoice_date: { gte: Date; lte: Date; }; company_id: number; } | { payment_status: { in: string[]; }; invoice_date: { gte: Date; lte: Date; }; company_id?: undefined; }' is not assignable to type 'InvoiceMasterWhereInput | undefined'.
+  Object literal may only specify known properties, and 'payment_status' does not exist in type 'InvoiceMasterWhereInput'.
+app/api/dashboard/financial/route.ts(29,44): error TS2339: Property 'receiptMaster' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+app/api/dashboard/financial/route.ts(40,45): error TS2339: Property 'receiptMaster' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+app/api/dashboard/financial/route.ts(49,13): error TS2322: Type '"payment_status"[]' is not assignable to type 'InvoiceMasterScalarFieldEnum | InvoiceMasterScalarFieldEnum[]'.
+  Type '"payment_status"[]' is not assignable to type 'InvoiceMasterScalarFieldEnum[]'.
+    Type '"payment_status"' is not assignable to type 'InvoiceMasterScalarFieldEnum'.
+app/api/dashboard/financial/route.ts(51,21): error TS2353: Object literal may only specify known properties, and 'grand_total_amount' does not exist in type 'InvoiceMasterSumAggregateInputType'.
+app/api/dashboard/financial/route.ts(54,17): error TS2322: Type '{ invoice_date: { gte: Date; lte: Date; }; company_id: number; } | { invoice_date: { gte: Date; lte: Date; }; company_id?: undefined; }' is not assignable to type 'InvoiceMasterWhereInput | undefined'.
+  Object literal may only specify known properties, and 'invoice_date' does not exist in type 'InvoiceMasterWhereInput'.
+app/api/dashboard/financial/route.ts(137,43): error TS2339: Property 'receiptMaster' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+app/api/dashboard/financial/route.ts(150,45): error TS2339: Property 'receiptMaster' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+app/api/dashboard/financial/route.ts(168,38): error TS18048: 'totalReceivables._sum' is possibly 'undefined'.
+app/api/dashboard/financial/route.ts(168,60): error TS2339: Property 'balance_due' does not exist on type '{ id?: number | null | undefined; company_id?: number | null | undefined; order_id?: number | null | undefined; }'.
+app/api/dashboard/financial/route.ts(173,31): error TS18048: 'totalReceivables._sum' is possibly 'undefined'.
+app/api/dashboard/financial/route.ts(173,53): error TS2339: Property 'balance_due' does not exist on type '{ id?: number | null | undefined; company_id?: number | null | undefined; order_id?: number | null | undefined; }'.
+app/api/dashboard/financial/route.ts(177,27): error TS2339: Property 'payment_status' does not exist on type 'PickEnumerable<InvoiceMasterGroupByOutputType, InvoiceMasterScalarFieldEnum | InvoiceMasterScalarFieldEnum[]> & { ...; }'.
+app/api/dashboard/financial/route.ts(178,24): error TS18048: 'p._count' is possibly 'undefined'.
+app/api/dashboard/financial/route.ts(178,33): error TS2339: Property 'id' does not exist on type 'true | { id?: number | undefined; company_id?: number | undefined; order_id?: number | undefined; _all?: number | undefined; }'.
+  Property 'id' does not exist on type 'true'.
+app/api/dashboard/financial/route.ts(179,32): error TS18048: 'p._sum' is possibly 'undefined'.
+app/api/dashboard/financial/route.ts(179,39): error TS2339: Property 'grand_total_amount' does not exist on type '{ id?: number | null | undefined; company_id?: number | null | undefined; order_id?: number | null | undefined; }'.
+app/api/dashboard/financial/route.ts(203,45): error TS7006: Parameter 'p' implicitly has an 'any' type.
+app/api/dashboard/financial/route.ts(209,49): error TS7006: Parameter 'r' implicitly has an 'any' type.
+app/dashboard/company/page.tsx(80,17): error TS2322: Type '{ title: string; subtitle: string; rightActions: Element; }' is not assignable to type 'IntrinsicAttributes & HeaderProps'.
+  Property 'rightActions' does not exist on type 'IntrinsicAttributes & HeaderProps'.
+app/dashboard/financial/page.tsx(102,17): error TS2322: Type '{ title: string; subtitle: string; startDate: Date; endDate: Date; onDateChange: (s: any, e: any) => void; rightActions: Element; }' is not assignable to type 'IntrinsicAttributes & HeaderProps'.
+  Property 'startDate' does not exist on type 'IntrinsicAttributes & HeaderProps'.
+app/dashboard/financial/page.tsx(104,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+app/dashboard/financial/page.tsx(104,35): error TS7006: Parameter 'e' implicitly has an 'any' type.
