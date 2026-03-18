@@ -47,15 +47,12 @@ export default function DashboardPage() {
         );
     }
 
-    if (!data) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <p className="text-gray-500">Failed to load dashboard</p>
-            </div>
-        );
-    }
-
-    const { stats, charts, tables } = data;
+    // --- FIX 1: Defensive Destructuring with Defaults ---
+    const {
+        stats = {},
+        charts = { ordersByMonth: [], orderStatusDistribution: [] },
+        tables = { recentOrders: [], topCustomers: [] }
+    } = data || {};
 
     return (
         <div>
@@ -66,30 +63,30 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
                         title="Total Customers"
-                        value={stats.totalCustomers}
+                        value={stats?.totalCustomers ?? 0} // FIX 2: Optional Chaining + Nullish Coalescing
                         icon={Users}
                         iconColor="text-blue-600"
                         iconBgColor="bg-blue-100"
                     />
                     <StatCard
                         title="Total Orders"
-                        value={stats.totalOrders}
+                        value={stats?.totalOrders ?? 0}
                         icon={ShoppingCart}
                         iconColor="text-green-600"
                         iconBgColor="bg-green-100"
                     />
                     <StatCard
                         title="Monthly Revenue"
-                        value={stats.monthlyRevenue}
+                        value={stats?.monthlyRevenue ?? 0}
                         icon={CreditCard}
                         format="currency"
-                        trend={stats.revenueGrowth}
+                        trend={stats?.revenueGrowth}
                         iconColor="text-purple-600"
                         iconBgColor="bg-purple-100"
                     />
                     <StatCard
                         title="Active Subscriptions"
-                        value={stats.activeSubscriptions}
+                        value={stats?.activeSubscriptions ?? 0}
                         icon={Package}
                         iconColor="text-orange-600"
                         iconBgColor="bg-orange-100"
@@ -100,7 +97,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard
                         title="Total Revenue"
-                        value={stats.totalRevenue}
+                        value={stats?.totalRevenue ?? 0}
                         icon={CreditCard}
                         format="currency"
                         iconColor="text-emerald-600"
@@ -108,14 +105,14 @@ export default function DashboardPage() {
                     />
                     <StatCard
                         title="Pending Orders"
-                        value={stats.pendingOrders}
+                        value={stats?.pendingOrders ?? 0}
                         icon={Clock}
                         iconColor="text-yellow-600"
                         iconBgColor="bg-yellow-100"
                     />
                     <StatCard
                         title="Total Products"
-                        value={stats.totalProducts}
+                        value={stats?.totalProducts ?? 0}
                         icon={Package}
                         iconColor="text-indigo-600"
                         iconBgColor="bg-indigo-100"
@@ -126,18 +123,18 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <ChartCard title="Orders & Revenue Trend" subtitle="Last 6 months">
                         <BarChart
-                            labels={charts.ordersByMonth.map((o: any) => o.month)}
+                            labels={charts?.ordersByMonth?.map((o: any) => o.month) || []}
                             datasets={[
                                 {
                                     label: "Orders",
-                                    data: charts.ordersByMonth.map((o: any) => o.orders),
+                                    data: charts?.ordersByMonth?.map((o: any) => o.orders) || [],
                                     backgroundColor: "#3b82f6",
                                 },
                                 {
                                     label: "Revenue (₹K)",
-                                    data: charts.ordersByMonth.map(
-                                        (o: any) => o.revenue / 1000
-                                    ),
+                                    data: charts?.ordersByMonth?.map(
+                                        (o: any) => (o.revenue || 0) / 1000
+                                    ) || [],
                                     backgroundColor: "#10b981",
                                 },
                             ]}
@@ -146,8 +143,8 @@ export default function DashboardPage() {
 
                     <ChartCard title="Order Status" subtitle="Distribution">
                         <DoughnutChart
-                            labels={charts.orderStatusDistribution.map((s: any) => s.status)}
-                            data={charts.orderStatusDistribution.map((s: any) => s.count)}
+                            labels={charts?.orderStatusDistribution?.map((s: any) => s.status) || []}
+                            data={charts?.orderStatusDistribution?.map((s: any) => s.count) || []}
                         />
                     </ChartCard>
                 </div>
@@ -162,7 +159,7 @@ export default function DashboardPage() {
                                 {
                                     key: "amount",
                                     header: "Amount",
-                                    render: (row: any) => formatCurrency(row.amount),
+                                    render: (row: any) => formatCurrency(row.amount || 0),
                                 },
                                 {
                                     key: "status",
@@ -170,7 +167,7 @@ export default function DashboardPage() {
                                     render: (row: any) => <Badge status={row.status} />,
                                 },
                             ]}
-                            data={tables.recentOrders}
+                            data={tables?.recentOrders || []}
                         />
                     </ChartCard>
 
@@ -183,10 +180,10 @@ export default function DashboardPage() {
                                 {
                                     key: "totalRevenue",
                                     header: "Revenue",
-                                    render: (row: any) => formatCurrency(row.totalRevenue),
+                                    render: (row: any) => formatCurrency(row.totalRevenue || 0),
                                 },
                             ]}
-                            data={tables.topCustomers}
+                            data={tables?.topCustomers || []}
                         />
                     </ChartCard>
                 </div>

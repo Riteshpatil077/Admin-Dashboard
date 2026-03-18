@@ -20,3 +20,14 @@ export function formatPercentage(value: number) {
     if (typeof value !== "number") return value;
     return `${value.toFixed(1)}%`;
 }
+
+export function serializeBigInt(obj: any): any {
+    if (obj === null || typeof obj !== "object") return obj;
+    if (Array.isArray(obj)) return obj.map(serializeBigInt);
+    return Object.fromEntries(
+        Object.entries(obj).map(([k, v]) => [
+            k,
+            typeof v === "bigint" ? Number(v) : serializeBigInt(v),
+        ])
+    );
+}

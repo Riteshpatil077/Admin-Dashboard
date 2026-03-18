@@ -18,6 +18,7 @@ export const STATUS_COLORS = {
     PAID: "bg-green-100 text-green-800",
     UNPAID: "bg-red-100 text-red-800",
     PARTIAL: "bg-orange-100 text-orange-800",
+    CLEARED: "bg-green-100 text-green-800",
 };
 
 export const DASHBOARD_ROUTES = [

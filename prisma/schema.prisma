@@ -1,16 +1,13 @@
-// prisma/schema.prisma
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+  engineType    = "library"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-
-// =================================================================================
-// CORE MODELS
-// =================================================================================
 
 model CompanyMaster {
   id                  Int             @id @default(autoincrement())
@@ -36,275 +33,854 @@ model CompanyMaster {
   pincode             String          @default("400001") @db.VarChar(10)
   state_id            Int             @default(1)
   taluka_id           Int?            @default(1)
-  
   atpost              AtPostMaster    @relation(fields: [atpost_id], references: [id])
   country             CountryMaster   @relation(fields: [country_id], references: [id])
   district            DistrictMaster  @relation(fields: [district_id], references: [id])
   state               StateMaster     @relation(fields: [state_id], references: [id])
   taluka              TalukaMaster?   @relation(fields: [taluka_id], references: [id])
-  
   invoiceMaster       InvoiceMaster[]
   orderMasters        OrderMaster[]
-  users               UserMaster[]
+  user_master         user_master[]
 
   @@map("company_master")
 }
 
-model UserMaster {
-  id            Int             @id @default(autoincrement())
-  display_name  String          @db.VarChar(255)
-  user_name     String          @unique @db.VarChar(100)
-  password_hash String
-  companyId     Int
-  status        String          @db.VarChar(20)
-  created_at    DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime        @updatedAt @db.Timestamptz(6)
-  role_id       Int?
-  
-  company       CompanyMaster   @relation(fields: [companyId], references: [id])
-  role          RoleMaster?     @relation(fields: [role_id], references: [id])
-  
-  // Inverse Relations
-  services           ServiceMaster[]
-  productCategories  ProductCategoryMaster[]
-  products           ProductMaster[]
-  orders             OrderMaster[]
-
-  @@map("user_master")
-}
-
-// =================================================================================
-// PRODUCT / SERVICE MODELS
-// =================================================================================
-
 model ServiceMaster {
-  id            Int             @id @default(autoincrement())
-  service_name  String          @unique @db.VarChar(100)
-  status        String          @default("ACTIVE") @db.VarChar(20)
-  user_id       Int
-  user          UserMaster      @relation(fields: [user_id], references: [id])
-  
-  productCategories ProductCategoryMaster[]
-  products          ProductMaster[]
-  saleRates         SaleRateMaster[]
-  subscriptionRates SubscriptionRateMaster[]
+  id                       Int                        @id @default(autoincrement())
+  service_name             String                     @unique @db.VarChar(100)
+  status                   String                     @default("ACTIVE") @db.VarChar(20)
+  user_id                  Int
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @db.Timestamptz(6)
+  productCategories        ProductCategoryMaster[]
+  products                 ProductMaster[]
+  sale_rate_master         sale_rate_master[]
+  user                     user_master                @relation(fields: [user_id], references: [id])
+  subscription_rate_master subscription_rate_master[]
 
   @@map("service_master")
 }
 
 model ProductCategoryMaster {
-  id                    Int             @id @default(autoincrement())
-  product_category_name String          @db.VarChar(150)
-  category_type         String?         @db.VarChar(50) // "DAIRY" / "MAGAZINE"
-  service_id            Int
-  user_id               Int
-  status                String          @default("ACTIVE") @db.VarChar(20)
-  created_at            DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime        @updatedAt @db.Timestamptz(6)
-  hsn_id                Int?
-  
-  hsnCode               HsnCodeMaster?  @relation(fields: [hsn_id], references: [id])
-  service               ServiceMaster   @relation(fields: [service_id], references: [id])
-  user                  UserMaster      @relation(fields: [user_id], references: [id])
-  
-  products              ProductMaster[]
-  productSubcategories  ProductSubCategoryMaster[]
-  saleRates             SaleRateMaster[]
-  subscriptionRates     SubscriptionRateMaster[]
+  id                          Int                        @id @default(autoincrement())
+  product_category_name       String                     @db.VarChar(150)
+  service_id                  Int
+  user_id                     Int
+  status                      String                     @default("ACTIVE") @db.VarChar(20)
+  created_at                  DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                   @updatedAt @db.Timestamptz(6)
+  hsn_id                      Int?
+  category_type               String?                    @db.VarChar(50)
+  hsnCode                     HsnCodeMaster?             @relation(fields: [hsn_id], references: [id])
+  service                     ServiceMaster              @relation(fields: [service_id], references: [id])
+  user                        user_master                @relation(fields: [user_id], references: [id])
+  products                    ProductMaster[]
+  product_sub_category_master ProductSubCategoryMaster[]
+  sale_rate_master            sale_rate_master[]
 
   @@map("product_category_master")
 }
 
 model ProductMaster {
-  id                     Int             @id @default(autoincrement())
-  product_name           String          @db.VarChar(255)
-  product_code           String          @db.VarChar(50)
+  id                     Int                      @id @default(autoincrement())
+  product_name           String                   @db.VarChar(255)
+  product_code           String                   @db.VarChar(50)
   product_specification  String?
   service_id             Int
   product_category_id    Int
   product_subcategory_id Int
   user_id                Int
-  status                 String          @default("ACTIVE") @db.VarChar(20)
-  created_at             DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime        @updatedAt @db.Timestamptz(6)
-  
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @updatedAt @db.Timestamptz(6)
+  status                 String                   @default("ACTIVE") @db.VarChar(20)
   productCategory        ProductCategoryMaster    @relation(fields: [product_category_id], references: [id])
   productSubCategory     ProductSubCategoryMaster @relation(fields: [product_subcategory_id], references: [id])
   service                ServiceMaster            @relation(fields: [service_id], references: [id])
-  user                   UserMaster               @relation(fields: [user_id], references: [id])
-  
-  orderItems             OrderItemDetail[]
-  saleRates              SaleRateMaster[]
-  subscriptionItems      SubscriptionItemDetail[]
+  user                   user_master              @relation(fields: [user_id], references: [id])
+  sale_rate_master       sale_rate_master[]
 
   @@map("product_master")
 }
 
-// =================================================================================
-// ORDER MODELS
-// =================================================================================
-
 model OrderMaster {
-  id                         Int             @id @default(autoincrement())
+  id                         Int                          @id @default(autoincrement())
   customer_id                Int
-  order_voucher_no           String          @db.VarChar(50)
-  order_date                 DateTime        @db.Date
+  order_voucher_no           String                       @db.VarChar(50)
+  order_date                 DateTime                     @db.Date
   customer_contact_detail_id Int?
-  sub_total                  Decimal         @db.Decimal(12, 2)
-  total_tax_amount           Decimal         @db.Decimal(12, 2)
-  courier_rate               Decimal         @default(0.0) @db.Decimal(10, 2)
-  courier_charges_total      Decimal         @default(0.0) @db.Decimal(10, 2)
-  grand_total_amount         Decimal         @db.Decimal(12, 2)
+  sub_total                  Decimal                      @db.Decimal(12, 2)
+  total_tax_amount           Decimal                      @db.Decimal(12, 2)
+  courier_rate               Decimal                      @default(0.0) @db.Decimal(10, 2)
+  courier_charges_total      Decimal                      @default(0.0) @db.Decimal(10, 2)
+  grand_total_amount         Decimal                      @db.Decimal(12, 2)
   user_id                    Int
-  status                     String          @default("PENDING") @db.VarChar(20)
-  created_at                 DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at                 DateTime        @updatedAt @db.Timestamptz(6)
-  company_id                 Int             @default(1)
-  
+  status                     String                       @default("PENDING") @db.VarChar(20)
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                     @updatedAt @db.Timestamptz(6)
+  company_id                 Int                          @default(1)
+  confirmation_comment       String?
+  confirmation_method        String?                      @db.VarChar(50)
+  is_complementary           Boolean                      @default(false)
+  rejection_reason           String?
+  invoice_master             InvoiceMaster[]
   deliveryAddress            OrderDeliveryAddress?
   items                      OrderItemDetail[]
+  company                    CompanyMaster                @relation(fields: [company_id], references: [id])
   customerContactDetail      CustomerContactDetailMaster? @relation(fields: [customer_contact_detail_id], references: [id])
-  customer                   CustomerMaster  @relation(fields: [customer_id], references: [id])
-  user                       UserMaster      @relation(fields: [user_id], references: [id])
-  company                    CompanyMaster   @relation(fields: [company_id], references: [id])
-  invoiceMaster              InvoiceMaster?
+  customer                   CustomerMaster               @relation(fields: [customer_id], references: [id])
 
   @@map("order_master")
 }
 
 model OrderDeliveryAddress {
-  id               Int          @id @default(autoincrement())
-  order_id         Int          @unique
+  id               Int            @id @default(autoincrement())
+  order_id         Int            @unique
   delivery_address String?
-  order            OrderMaster  @relation(fields: [order_id], references: [id])
+  country_id       Int
+  state_id         Int
+  district_id      Int
+  taluka_id        Int
+  at_post_id       Int
+  pin_code         String?        @db.VarChar(10)
+  atpost_master    AtPostMaster   @relation(fields: [at_post_id], references: [id])
+  country_master   CountryMaster  @relation(fields: [country_id], references: [id])
+  district_master  DistrictMaster @relation(fields: [district_id], references: [id])
+  order            OrderMaster    @relation(fields: [order_id], references: [id])
+  state_master     StateMaster    @relation(fields: [state_id], references: [id])
+  taluka_master    TalukaMaster   @relation(fields: [taluka_id], references: [id])
 
   @@map("order_delivery_address")
 }
 
 model OrderItemDetail {
-  id          Int          @id @default(autoincrement())
-  order_id    Int
-  product_id  Int
-  rate        Decimal      @db.Decimal(10, 2)
-  quantity    Int
-  order       OrderMaster  @relation(fields: [order_id], references: [id])
-  product     ProductMaster @relation(fields: [product_id], references: [id])
+  id                Int           @id @default(autoincrement())
+  order_id          Int
+  product_id        Int
+  rate              Decimal       @db.Decimal(10, 2)
+  quantity          Int
+  taxable_amount    Decimal       @db.Decimal(12, 2)
+  hsn_id_snapshot   Int
+  gst_rate_snapshot Decimal       @db.Decimal(4, 2)
+  total_tax_amount  Decimal       @db.Decimal(10, 2)
+  cgst_rate         Decimal       @db.Decimal(4, 2)
+  cgst_amount       Decimal       @db.Decimal(10, 2)
+  sgst_rate         Decimal       @db.Decimal(4, 2)
+  sgst_amount       Decimal       @db.Decimal(10, 2)
+  igst_rate         Decimal       @db.Decimal(4, 2)
+  igst_amount       Decimal       @db.Decimal(10, 2)
+  created_at        DateTime      @default(now()) @db.Timestamptz(6)
+  discount_rate     Decimal       @default(0.0) @db.Decimal(4, 2)
+  discount_amount   Decimal       @default(0.0) @db.Decimal(10, 2)
+  hsn_code_master   HsnCodeMaster @relation(fields: [hsn_id_snapshot], references: [id])
+  order             OrderMaster   @relation(fields: [order_id], references: [id])
 
   @@map("order_item_detail")
 }
 
-// =================================================================================
-// STUBS FOR REMAINING MODELS (Fill these with your original fields)
-// =================================================================================
-
 model CountryMaster {
-  id      Int             @id @default(autoincrement())
-  company CompanyMaster[]
+  id                                  Int                                   @id @default(autoincrement())
+  country_name                        String                                @unique @db.VarChar(100)
+  country_code                        String                                @unique @db.VarChar(10)
+  status                              String                                @db.VarChar(20)
+  created_at                          DateTime                              @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime                              @db.Timestamptz(6)
+  company                             CompanyMaster[]
+  courier_service_master              courier_service_master[]
+  customer_master                     CustomerMaster[]
+  order_delivery_address              OrderDeliveryAddress[]
+  state_master                        StateMaster[]
+  subscription_order_delivery_address subscription_order_delivery_address[]
 
   @@map("country_master")
 }
 
 model StateMaster {
-  id      Int             @id @default(autoincrement())
-  company CompanyMaster[]
+  id                                  Int                                   @id @default(autoincrement())
+  state_name                          String                                @unique @db.VarChar(100)
+  state_code                          String                                @unique @db.VarChar(10)
+  countryId                           Int
+  status                              String                                @db.VarChar(20)
+  created_at                          DateTime                              @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime                              @db.Timestamptz(6)
+  is_union_territory                  Boolean                               @default(false)
+  company                             CompanyMaster[]
+  courier_service_master              courier_service_master[]
+  customer_master                     CustomerMaster[]
+  district_master                     DistrictMaster[]
+  order_delivery_address              OrderDeliveryAddress[]
+  country_master                      CountryMaster                         @relation(fields: [countryId], references: [id])
+  subscription_order_delivery_address subscription_order_delivery_address[]
 
   @@map("state_master")
 }
 
 model DistrictMaster {
-  id      Int             @id @default(autoincrement())
-  company CompanyMaster[]
+  id                                  Int                                   @id @default(autoincrement())
+  district_name                       String                                @db.VarChar(100)
+  district_code                       String                                @db.VarChar(10)
+  stateId                             Int
+  status                              String                                @db.VarChar(20)
+  created_at                          DateTime                              @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime                              @db.Timestamptz(6)
+  company                             CompanyMaster[]
+  courier_service_master              courier_service_master[]
+  customer_master                     CustomerMaster[]
+  state_master                        StateMaster                           @relation(fields: [stateId], references: [id])
+  order_delivery_address              OrderDeliveryAddress[]
+  subscription_order_delivery_address subscription_order_delivery_address[]
+  taluka_master                       TalukaMaster[]
 
   @@map("district_master")
 }
 
 model TalukaMaster {
-  id      Int             @id @default(autoincrement())
-  company CompanyMaster[]
+  id                                  Int                                   @id @default(autoincrement())
+  taluka_name                         String                                @db.VarChar(100)
+  taluka_code                         String                                @db.VarChar(10)
+  districtId                          Int
+  status                              String                                @db.VarChar(20)
+  created_at                          DateTime                              @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime                              @db.Timestamptz(6)
+  atpost_master                       AtPostMaster[]
+  company                             CompanyMaster[]
+  courier_service_master              courier_service_master[]
+  customer_master                     CustomerMaster[]
+  order_delivery_address              OrderDeliveryAddress[]
+  subscription_order_delivery_address subscription_order_delivery_address[]
+  district_master                     DistrictMaster                        @relation(fields: [districtId], references: [id])
 
   @@map("taluka_master")
 }
 
 model AtPostMaster {
-  id      Int             @id @default(autoincrement())
-  company CompanyMaster[]
+  id                                  Int                                   @id @default(autoincrement())
+  atpost_name                         String                                @db.VarChar(100)
+  atpost_code                         String                                @db.VarChar(20)
+  talukaId                            Int
+  status                              String                                @db.VarChar(20)
+  created_at                          DateTime                              @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime                              @db.Timestamptz(6)
+  taluka_master                       TalukaMaster                          @relation(fields: [talukaId], references: [id])
+  company                             CompanyMaster[]
+  courier_service_master              courier_service_master[]
+  customer_master                     CustomerMaster[]
+  order_delivery_address              OrderDeliveryAddress[]
+  subscription_order_delivery_address subscription_order_delivery_address[]
 
   @@map("atpost_master")
 }
 
 model RoleMaster {
-  id    Int          @id @default(autoincrement())
-  users UserMaster[]
+  id                                           Int               @id @default(autoincrement())
+  role_name                                    String            @unique @db.VarChar(100)
+  description                                  String?
+  user_id                                      Int
+  created_at                                   DateTime          @default(now()) @db.Timestamptz(6)
+  status                                       String            @default("ACTIVE") @db.VarChar(20)
+  user_master_role_master_user_idTouser_master user_master       @relation("role_master_user_idTouser_master", fields: [user_id], references: [id])
+  role_permission                              role_permission[]
+  user_master_user_master_role_idTorole_master user_master[]     @relation("user_master_role_idTorole_master")
 
   @@map("role_master")
 }
 
 model CustomerMaster {
-  id     Int           @id @default(autoincrement())
-  orders OrderMaster[]
-
+  id                             Int                           @id @default(autoincrement())
+  customer_code                  String                        @unique @db.VarChar(30)
+  customer_name                  String                        @db.VarChar(500)
+  customer_address               String?
+  reg_no                         String?                       @unique @db.VarChar(50)
+  pan                            String?                       @db.VarChar(10)
+  gstin                          String?                       @db.VarChar(30)
+  status                         String                        @default("ACTIVE") @db.VarChar(20)
+  created_at                     DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                      @db.Timestamptz(6)
+  country_id                     Int
+  state_id                       Int
+  district_id                    Int
+  taluka_id                      Int
+  at_post_id                     Int
+  category_id                    Int
+  subcategory_id                 Int
+  user_id                        Int
+  opening_balance                Decimal                       @default(0.0) @db.Decimal(12, 2)
+  alternate_mobile_number        String?                       @db.VarChar(15)
+  email                          String?                       @db.VarChar(100)
+  mobile_number                  String?                       @db.VarChar(15)
+  website                        String?                       @db.VarChar(100)
+  opening_balance_effective_date DateTime?                     @db.Date
+  pincode                        String?                       @db.VarChar(10)
+  customer_contact_detail_master CustomerContactDetailMaster[]
+  atpost_master                  AtPostMaster                  @relation(fields: [at_post_id], references: [id])
+  customer_category_master       customer_category_master      @relation(fields: [category_id], references: [id])
+  country_master                 CountryMaster                 @relation(fields: [country_id], references: [id])
+  district_master                DistrictMaster                @relation(fields: [district_id], references: [id])
+  state_master                   StateMaster                   @relation(fields: [state_id], references: [id])
+  customer_sub_category_master   customer_sub_category_master  @relation(fields: [subcategory_id], references: [id])
+  taluka_master                  TalukaMaster                  @relation(fields: [taluka_id], references: [id])
+  user_master                    user_master                   @relation(fields: [user_id], references: [id])
+  orders                         OrderMaster[]
+  receipts                       ReceiptMaster[] 
   @@map("customer_master")
 }
 
 model InvoiceMaster {
-  id         Int           @id @default(autoincrement())
-  company_id Int
-  order_id   Int           @unique
-
-  company    CompanyMaster @relation(fields: [company_id], references: [id])
-  order      OrderMaster   @relation(fields: [order_id], references: [id])
+  id                    Int                  @id @default(autoincrement())
+  invoice_number        String               @unique @db.VarChar(50)
+  invoice_date          DateTime             @db.Date
+  sale_order_id         Int?
+  grand_total_amount    Decimal              @db.Decimal(12, 2)
+  status                String               @default("ISSUED") @db.VarChar(20)
+  user_id               Int
+  company_id            Int
+  created_at            DateTime             @default(now()) @db.Timestamptz(6)
+  subscription_order_id Int?                 @unique
+  balance_due           Decimal              @default(0.0) @db.Decimal(12, 2)
+  is_opening_balance    Boolean              @default(false)
+  paid_amount           Decimal              @default(0.0) @db.Decimal(12, 2)
+  payment_status        String               @default("UNPAID") @db.VarChar(20)
+  company               CompanyMaster        @relation(fields: [company_id], references: [id])
+  order_master          OrderMaster?         @relation(fields: [sale_order_id], references: [id])
+  subscription_master   subscription_master? @relation(fields: [subscription_order_id], references: [id])
+  user_master           user_master          @relation(fields: [user_id], references: [id])
 
   @@map("invoice_master")
 }
 
-model HsnCodeMaster {
-  id                Int                     @id @default(autoincrement())
-  productCategories ProductCategoryMaster[]
 
+model ReceiptMaster {
+  id                 Int         @id @default(autoincrement())
+  receipt_voucher_no String      @unique @db.VarChar(50)
+  receipt_date       DateTime    @db.Date
+  customer_id        Int
+  invoice_id         Int?
+  mode               String      @db.VarChar(50)
+  status             String      @default("CLEARED") @db.VarChar(50)
+  user_id            Int
+  created_at         DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime    @db.Timestamptz(6)
+  amount             Decimal?    @db.Decimal(12, 2)
+  cheque_no          String?     @db.VarChar(50)
+  instrument_date    DateTime    @db.Date
+  online_type        String?     @db.VarChar(50)
+  payer_bank_name    String?     @db.VarChar(100)
+  payer_branch_name  String?     @db.VarChar(100)
+  receiving_bank_id  Int?
+  reference_no       String?     @db.VarChar(100)
+  remarks            String?
+  sub_mode           String      @db.VarChar(50)
+  total_amount       Decimal     @default(0.0) @db.Decimal(12, 2)
+  unused_amount      Decimal     @default(0.0) @db.Decimal(12, 2)
+  
+  // ADD THESE RELATIONS:
+  customer           CustomerMaster @relation(fields: [customer_id], references: [id])
+  user_master        user_master    @relation(fields: [user_id], references: [id])
+
+  @@map("receipt_master")
+}
+
+model HsnCodeMaster {
+  id                       Int                        @id @default(autoincrement())
+  hsn_code                 String                     @db.VarChar(50)
+  description              String?
+  gst_rate                 Decimal                    @db.Decimal(4, 2)
+  effective_date           DateTime                   @db.Date
+  user_id                  Int
+  status                   String                     @default("ACTIVE")
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @db.Timestamptz(6)
+  user_master              user_master                @relation(fields: [user_id], references: [id])
+  order_item_detail        OrderItemDetail[]
+  productCategories        ProductCategoryMaster[]
+  subscription_item_detail subscription_item_detail[]
+
+  @@unique([hsn_code, effective_date])
   @@map("hsn_code_master")
 }
 
 model ProductSubCategoryMaster {
-  id          Int                   @id @default(autoincrement())
-  category_id Int
-
-  category    ProductCategoryMaster @relation(fields: [category_id], references: [id])
-  products    ProductMaster[]
+  id                        Int                        @id @default(autoincrement())
+  product_sub_category_name String                     @db.VarChar(150)
+  product_category_id       Int?
+  user_id                   Int
+  status                    String                     @default("ACTIVE") @db.VarChar(20)
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime                   @db.Timestamptz(6)
+  products                  ProductMaster[]
+  product_category_master   ProductCategoryMaster?     @relation(fields: [product_category_id], references: [id])
+  user_master               user_master                @relation(fields: [user_id], references: [id])
+  sale_rate_master          sale_rate_master[]
+  subscription_rate_master  subscription_rate_master[]
 
   @@map("product_sub_category_master")
 }
 
 model CustomerContactDetailMaster {
-  id     Int           @id @default(autoincrement())
-  orders OrderMaster[]
+  id                    Int                   @id @default(autoincrement())
+  contact_person_name   String                @db.VarChar(255)
+  contact_person_number String                @db.VarChar(15)
+  contact_type          String                @db.VarChar(50)
+  contact_person_email  String?               @db.VarChar(100)
+  customer_id           Int
+  designation_id        Int
+  status                String                @default("ACTIVE") @db.VarChar(20)
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime              @db.Timestamptz(6)
+  customer_master       CustomerMaster        @relation(fields: [customer_id], references: [id])
+  designation_master    designation_master    @relation(fields: [designation_id], references: [id])
+  orders                OrderMaster[]
+  subscription_master   subscription_master[]
 
   @@map("customer_contact_detail_master")
 }
 
-// Rates Stubs
-model SaleRateMaster {
-  id          Int                   @id @default(autoincrement())
-  service_id  Int
-  category_id Int
-  product_id  Int
-
-  service     ServiceMaster         @relation(fields: [service_id], references: [id])
-  category    ProductCategoryMaster @relation(fields: [category_id], references: [id])
-  product     ProductMaster         @relation(fields: [product_id], references: [id])
+model BoxUnitMaster {
+  id                     Int                      @id @default(autoincrement())
+  box_unit               String                   @unique @db.VarChar(50)
+  user_id                Int
+  status                 String                   @default("ACTIVE") @db.VarChar(20)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @db.Timestamptz(6)
+  user_master            user_master              @relation(fields: [user_id], references: [id])
+  order_packaging_box    order_packaging_box[]
+  order_packaging_detail order_packaging_detail[]
 }
 
-model SubscriptionRateMaster {
-  id          Int                   @id @default(autoincrement())
-  service_id  Int
-  category_id Int
-
-  service     ServiceMaster         @relation(fields: [service_id], references: [id])
-  category    ProductCategoryMaster @relation(fields: [category_id], references: [id])
+model bank_account_type_master {
+  id                 Int                  @id @default(autoincrement())
+  account_type_name  String               @unique @db.VarChar(50)
+  abbreviation       String               @unique @db.VarChar(10)
+  user_id            Int
+  status             String               @default("ACTIVE") @db.VarChar(20)
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @db.Timestamptz(6)
+  user_master        user_master          @relation(fields: [user_id], references: [id])
+  bank_detail_master bank_detail_master[]
 }
 
-model SubscriptionItemDetail {
-  id         Int           @id @default(autoincrement())
-  product_id Int
+model bank_detail_master {
+  id                             Int                      @id @default(autoincrement())
+  account_name                   String                   @db.VarChar(255)
+  bank_name                      String                   @db.VarChar(255)
+  branch_name                    String                   @db.VarChar(255)
+  branch_address                 String?
+  phone                          String?                  @db.VarChar(20)
+  email                          String?                  @db.VarChar(100)
+  account_number                 String                   @unique @db.VarChar(50)
+  ifs_code                       String                   @unique @db.VarChar(20)
+  option_flag                    String?                  @db.VarChar(50)
+  account_type_id                Int
+  user_id                        Int
+  created_at                     DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                 @db.Timestamptz(6)
+  status                         String                   @default("ACTIVE") @db.VarChar(20)
+  opening_balance                Decimal                  @default(0.0) @db.Decimal(12, 2)
+  opening_balance_effective_date DateTime?                @db.Date
+  bank_account_type_master       bank_account_type_master @relation(fields: [account_type_id], references: [id])
+  user_master                    user_master              @relation(fields: [user_id], references: [id])
+}
 
-  product    ProductMaster @relation(fields: [product_id], references: [id])
+model child_menu_master {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  path        String   @db.VarChar(255)
+  order_index Int
+  status      String   @default("ACTIVE") @db.VarChar(20)
+  icons_class String?  @db.VarChar(50)
+  submenu_id  Int
+  user_id     Int
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @db.Timestamptz(6)
+}
+
+model complimentary_master {
+  id                   Int      @id @default(autoincrement())
+  complimentary_number String   @unique
+  sale_order_id        Int?     @unique
+  status               String   @default("COMPLEMENTARY_ENTRY")
+  total_items          Int
+  total_quantity       Int
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime @db.Timestamptz(6)
+}
+
+model courier_service_master {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @db.VarChar(255)
+  pan_number              String?                   @db.VarChar(10)
+  gstin                   String?                   @db.VarChar(15)
+  contact_person          String?                   @db.VarChar(100)
+  contact_no              String?                   @db.VarChar(20)
+  mobile_no               String?                   @db.VarChar(20)
+  email_main              String                    @db.VarChar(100)
+  email_alternate         String?                   @db.VarChar(100)
+  address                 String?
+  pin_code                String?                   @db.VarChar(10)
+  country_id              Int
+  state_id                Int
+  district_id             Int
+  taluka_id               Int
+  at_post_id              Int
+  user_id                 Int
+  status                  String                    @default("ACTIVE") @db.VarChar(20)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                  @db.Timestamptz(6)
+  atpost_master           AtPostMaster              @relation(fields: [at_post_id], references: [id])
+  country_master          CountryMaster             @relation(fields: [country_id], references: [id])
+  district_master         DistrictMaster            @relation(fields: [district_id], references: [id])
+  state_master            StateMaster               @relation(fields: [state_id], references: [id])
+  taluka_master           TalukaMaster              @relation(fields: [taluka_id], references: [id])
+  user_master             user_master               @relation(fields: [user_id], references: [id])
+  courier_shipment_master courier_shipment_master[]
+}
+
+model courier_shipment_master {
+  id                     Int                     @id @default(autoincrement())
+  created_at             DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                @db.Timestamptz(6)
+  order_packaging_box_id Int?
+  courierService         Int?
+  courier_date           DateTime                @default(now()) @db.Date
+  courier_service_master courier_service_master? @relation(fields: [courierService], references: [id])
+}
+
+model customer_category_master {
+  id                           Int                            @id @default(autoincrement())
+  category_name                String                         @unique @db.VarChar(100)
+  user_id                      Int
+  status                       String                         @default("ACTIVE") @db.VarChar(20)
+  created_at                   DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime                       @db.Timestamptz(6)
+  user_master                  user_master                    @relation(fields: [user_id], references: [id])
+  customer_master              CustomerMaster[]
+  customer_sub_category_master customer_sub_category_master[]
+}
+
+model customer_sub_category_master {
+  id                       Int                      @id @default(autoincrement())
+  subcategory_name         String                   @db.VarChar(100)
+  user_id                  Int
+  category_id              Int
+  status                   String                   @default("ACTIVE") @db.VarChar(20)
+  created_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                 @db.Timestamptz(6)
+  customer_master          CustomerMaster[]
+  customer_category_master customer_category_master @relation(fields: [category_id], references: [id])
+  user_master              user_master              @relation(fields: [user_id], references: [id])
+}
+
+model designation_master {
+  id                             Int                           @id @default(autoincrement())
+  designation_name               String                        @unique @db.VarChar(100)
+  status                         String                        @default("ACTIVE") @db.VarChar(20)
+  created_at                     DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                      @db.Timestamptz(6)
+  user_id                        Int
+  customer_contact_detail_master CustomerContactDetailMaster[]
+  user_master                    user_master                   @relation(fields: [user_id], references: [id])
+}
+
+model invoice_rejection_history {
+  id          Int      @id @default(autoincrement())
+  invoice_id  Int
+  reason      String   @db.VarChar(255)
+  rejected_by Int
+  rejected_at DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model journal_entry {
+  id          Int      @id @default(autoincrement())
+  customer_id Int
+  invoice_id  Int?
+  receipt_id  Int?
+  trn_type    String   @db.VarChar(50)
+  amount      Decimal  @db.Decimal(12, 2)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @db.Timestamptz(6)
+  user_id     Int
+  status      String   @default("ACTIVE") @db.VarChar(20)
+}
+
+model menu_master {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  path        String   @db.VarChar(255)
+  order_index Int
+  status      String   @default("ACTIVE") @db.VarChar(20)
+  icons_class String?  @db.VarChar(50)
+  user_id     Int
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @db.Timestamptz(6)
+}
+
+model order_packaging_box {
+  id                        Int                    @id @default(autoincrement())
+  order_packaging_header_id Int
+  box_unit_id               Int
+  box_sequence              Int
+  contents                  Json
+  BoxUnitMaster             BoxUnitMaster          @relation(fields: [box_unit_id], references: [id])
+  order_packaging_header    order_packaging_header @relation(fields: [order_packaging_header_id], references: [id])
+
+  @@unique([order_packaging_header_id, box_sequence])
+}
+
+model order_packaging_detail {
+  id                        Int                    @id @default(autoincrement())
+  box_unit_id               Int
+  quantity_used             Int
+  created_at                DateTime               @default(now()) @db.Timestamptz(6)
+  order_packaging_header_id Int
+  quantity_packaged         Int                    @default(1)
+  BoxUnitMaster             BoxUnitMaster          @relation(fields: [box_unit_id], references: [id])
+  order_packaging_header    order_packaging_header @relation(fields: [order_packaging_header_id], references: [id])
+
+  @@unique([order_packaging_header_id, box_unit_id])
+}
+
+model order_packaging_header {
+  id                     Int                      @id @default(autoincrement())
+  invoice_id             Int?
+  user_id                Int
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  complementary_id       Int?
+  order_packaging_box    order_packaging_box[]
+  order_packaging_detail order_packaging_detail[]
+  user_master            user_master              @relation(fields: [user_id], references: [id])
+}
+
+model permission_master {
+  id              Int               @id @default(autoincrement())
+  permission_code String            @unique @db.VarChar(100)
+  description     String?
+  user_id         Int
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  status          String            @default("ACTIVE") @db.VarChar(20)
+  user_master     user_master       @relation(fields: [user_id], references: [id])
+  role_permission role_permission[]
+}
+
+model receipt_invoice_detail {
+  id                Int      @id @default(autoincrement())
+  allocation_date   DateTime @default(now()) @db.Date
+  customer_id       Int?
+  receipt_master_id Int
+  source_type       String?  @db.VarChar(50)
+  invoice_id        Int
+  amount_allocated  Decimal  @db.Decimal(12, 2)
+  ref_label         String?  @db.VarChar(100)
+  status            String   @default("ALLOCATED") @db.VarChar(20)
+  user_id           Int?
+  created_at        DateTime @db.Timestamptz(6)
+  updated_at        DateTime @db.Timestamptz(6)
+}
+
+model role_permission {
+  id                Int               @id @default(autoincrement())
+  role_id           Int
+  permission_id     Int
+  status            String            @default("ACTIVE") @db.VarChar(20)
+  permission_master permission_master @relation(fields: [permission_id], references: [id])
+  role_master       RoleMaster        @relation(fields: [role_id], references: [id])
+
+  @@unique([role_id, permission_id])
+}
+
+model sale_rate_master {
+  id                          Int                      @id @default(autoincrement())
+  sale_rate                   Decimal                  @db.Decimal(10, 2)
+  service_id                  Int
+  product_category_id         Int
+  product_subcategory_id      Int
+  product_id                  Int
+  user_id                     Int
+  status                      String                   @default("ACTIVE")
+  created_at                  DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                 @db.Timestamptz(6)
+  product_category_master     ProductCategoryMaster    @relation(fields: [product_category_id], references: [id])
+  product_master              ProductMaster            @relation(fields: [product_id], references: [id])
+  product_sub_category_master ProductSubCategoryMaster @relation(fields: [product_subcategory_id], references: [id])
+  service_master              ServiceMaster            @relation(fields: [service_id], references: [id])
+  user_master                 user_master              @relation(fields: [user_id], references: [id])
+
+  @@unique([service_id, product_category_id, product_subcategory_id, product_id])
+}
+
+model sequence_master {
+  id            Int    @id @default(autoincrement())
+  sequence_name String @unique @db.VarChar(50)
+  next_value    Int    @default(1)
+}
+
+model submenu_master {
+  id          Int      @id
+  name        String   @db.VarChar(100)
+  path        String   @db.VarChar(255)
+  order_index Int
+  status      String   @default("ACTIVE") @db.VarChar(20)
+  icons_class String?  @db.VarChar(50)
+  menu_id     Int
+  user_id     Int
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @db.Timestamptz(6)
+}
+
+model subscription_item_detail {
+  id                  Int                 @id @default(autoincrement())
+  subscription_id     Int
+  product_id          Int
+  unit_price          Decimal             @db.Decimal(10, 2)
+  quantity            Int
+  taxable_amount      Decimal             @db.Decimal(12, 2)
+  discount_rate       Decimal             @default(0.0) @db.Decimal(4, 2)
+  discount_amount     Decimal             @default(0.0) @db.Decimal(10, 2)
+  hsn_id_snapshot     Int
+  gst_rate_snapshot   Decimal             @db.Decimal(4, 2)
+  total_tax_amount    Decimal             @db.Decimal(10, 2)
+  cgst_amount         Decimal             @db.Decimal(10, 2)
+  sgst_amount         Decimal             @db.Decimal(10, 2)
+  igst_amount         Decimal             @db.Decimal(10, 2)
+  user_id             Int
+  cgst_rate           Decimal             @db.Decimal(4, 2)
+  igst_rate           Decimal             @db.Decimal(4, 2)
+  sgst_rate           Decimal             @db.Decimal(4, 2)
+  hsn_code_master     HsnCodeMaster       @relation(fields: [hsn_id_snapshot], references: [id])
+  subscription_master subscription_master @relation(fields: [subscription_id], references: [id])
+  user_master         user_master         @relation(fields: [user_id], references: [id])
+
+  @@unique([subscription_id, product_id])
+}
+
+model subscription_master {
+  id                                  Int                                  @id @default(autoincrement())
+  subscription_date                   DateTime                             @db.Date
+  subscription_start_date             DateTime                             @db.Date
+  valid_upto_date                     DateTime                             @db.Date
+  customer_id                         Int
+  customer_contact_detail_id          Int
+  subscription_period_id              Int
+  sub_total                           Decimal                              @db.Decimal(12, 2)
+  discount_total_amount               Decimal                              @default(0.0) @db.Decimal(10, 2)
+  total_tax_amount                    Decimal                              @db.Decimal(12, 2)
+  grand_total_amount                  Decimal                              @db.Decimal(12, 2)
+  status                              String                               @default("PENDING") @db.VarChar(20)
+  user_id                             Int
+  created_at                          DateTime                             @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime                             @db.Timestamptz(6)
+  courier_charges_total               Decimal                              @default(0.0) @db.Decimal(10, 2)
+  courier_rate                        Decimal                              @default(0.0) @db.Decimal(10, 2)
+  subscription_voucher_no             String                               @unique @db.VarChar(50)
+  validity_status                     String                               @default("VALID") @db.VarChar(20)
+  delivery_mode                       String                               @default("POST") @db.VarChar(50)
+  confirmation_comment                String?
+  confirmation_method                 String?                              @db.VarChar(50)
+  is_complementary                    Boolean                              @default(false)
+  rejection_reason                    String?
+  invoice_master                      InvoiceMaster?
+  subscription_item_detail            subscription_item_detail[]
+  customer_contact_detail_master      CustomerContactDetailMaster          @relation(fields: [customer_contact_detail_id], references: [id])
+  subscription_period_master          subscription_period_master           @relation(fields: [subscription_period_id], references: [id])
+  user_master                         user_master                          @relation(fields: [user_id], references: [id])
+  subscription_order_delivery_address subscription_order_delivery_address?
+}
+
+model subscription_order_delivery_address {
+  id                  Int                 @id @default(autoincrement())
+  subscription_id     Int                 @unique
+  delivery_address    String?
+  country_id          Int
+  state_id            Int
+  district_id         Int
+  taluka_id           Int
+  at_post_id          Int
+  pin_code            String?             @db.VarChar(10)
+  atpost_master       AtPostMaster        @relation(fields: [at_post_id], references: [id])
+  country_master      CountryMaster       @relation(fields: [country_id], references: [id])
+  district_master     DistrictMaster      @relation(fields: [district_id], references: [id])
+  state_master        StateMaster         @relation(fields: [state_id], references: [id])
+  subscription_master subscription_master @relation(fields: [subscription_id], references: [id])
+  taluka_master       TalukaMaster        @relation(fields: [taluka_id], references: [id])
+}
+
+model subscription_period_master {
+  id                       Int                        @id @default(autoincrement())
+  period_value             Int
+  period_type              String                     @db.VarChar(50)
+  user_id                  Int
+  status                   String                     @default("ACTIVE") @db.VarChar(20)
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @db.Timestamptz(6)
+  subscription_master      subscription_master[]
+  user_master              user_master                @relation(fields: [user_id], references: [id])
+  subscription_rate_master subscription_rate_master[]
+
+  @@unique([period_value, period_type])
+}
+
+model subscription_rate_master {
+  id                          Int                        @id @default(autoincrement())
+  subscription_rate           Decimal                    @db.Decimal(10, 2)
+  service_id                  Int
+  product_category_id         Int
+  product_subcategory_id      Int
+  product_id                  Int
+  subscription_period_id      Int
+  user_id                     Int
+  created_at                  DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                   @db.Timestamptz(6)
+  status                      String                     @default("ACTIVE") @db.VarChar(20)
+  product_sub_category_master ProductSubCategoryMaster   @relation(fields: [product_subcategory_id], references: [id])
+  service_master              ServiceMaster              @relation(fields: [service_id], references: [id])
+  subscription_period_master  subscription_period_master @relation(fields: [subscription_period_id], references: [id])
+  user_master                 user_master                @relation(fields: [user_id], references: [id])
+
+  @@unique([product_id, subscription_period_id, service_id, product_category_id, product_subcategory_id])
+}
+
+model unit_master {
+  id          Int         @id @default(autoincrement())
+  unit_name   String      @unique @db.VarChar(50)
+  user_id     Int
+  status      String      @default("ACTIVE") @db.VarChar(20)
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime    @db.Timestamptz(6)
+  user_master user_master @relation(fields: [user_id], references: [id])
+}
+
+model user_master {
+  id                                           Int                            @id @default(autoincrement())
+  display_name                                 String                         @db.VarChar(255)
+  user_name                                    String                         @unique @db.VarChar(100)
+  password_hash                                String
+  companyId                                    Int
+  status                                       String                         @db.VarChar(20)
+  created_at                                   DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at                                   DateTime                       @db.Timestamptz(6)
+  role_id                                      Int?
+  BoxUnitMaster                                BoxUnitMaster[]
+  bank_account_type_master                     bank_account_type_master[]
+  bank_detail_master                           bank_detail_master[]
+  courier_service_master                       courier_service_master[]
+  customer_category_master                     customer_category_master[]
+  customer_master                              CustomerMaster[]
+  customer_sub_category_master                 customer_sub_category_master[]
+  designation_master                           designation_master[]
+  hsn_code_master                              HsnCodeMaster[]
+  invoice_master                               InvoiceMaster[]
+  order_packaging_header                       order_packaging_header[]
+  permission_master                            permission_master[]
+  productCategories                            ProductCategoryMaster[]
+  products                                     ProductMaster[]
+  product_sub_category_master                  ProductSubCategoryMaster[]
+  receipt_master                               ReceiptMaster[]
+  role_master_role_master_user_idTouser_master RoleMaster[]                   @relation("role_master_user_idTouser_master")
+  sale_rate_master                             sale_rate_master[]
+  services                                     ServiceMaster[]
+  subscription_item_detail                     subscription_item_detail[]
+  subscription_master                          subscription_master[]
+  subscription_period_master                   subscription_period_master[]
+  subscription_rate_master                     subscription_rate_master[]
+  unit_master                                  unit_master[]
+  company_master                               CompanyMaster                  @relation(fields: [companyId], references: [id])
+  role_master_user_master_role_idTorole_master RoleMaster?                    @relation("user_master_role_idTorole_master", fields: [role_id], references: [id])
 }

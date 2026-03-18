@@ -22,7 +22,6 @@ import {
     Building2,
     CreditCard,
 } from "lucide-react";
-
 export default function FinancialPage() {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -177,10 +176,10 @@ export default function FinancialPage() {
                                         </div>
                                         <AlertTriangle
                                             className={`h-6 w-6 ${aging.range.includes("90")
-                                                    ? "text-red-500"
-                                                    : aging.range.includes("60")
-                                                        ? "text-orange-500"
-                                                        : "text-green-500"
+                                                ? "text-red-500"
+                                                : aging.range.includes("60")
+                                                    ? "text-orange-500"
+                                                    : "text-green-500"
                                                 }`}
                                         />
                                     </div>
