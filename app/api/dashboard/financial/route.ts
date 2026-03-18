@@ -254,7 +254,7 @@ export async function GET(req: Request) {
 
 
 
-// // @ts-nocheck
+//
 // import { prisma } from "@/lib/prisma";
 // import { NextResponse } from "next/server";
 // import { Prisma } from "@prisma/client";
