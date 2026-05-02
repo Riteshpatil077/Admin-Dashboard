@@ -2,39 +2,41 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("🌱 Seeding database with 50+ records...");
 
-  // 1. Country
+  // 1. Country & State
   const country = await prisma.countryMaster.upsert({
     where: { country_code: "IN" },
     update: {},
     create: { country_name: "India", country_code: "IN", status: "ACTIVE", updated_at: new Date() },
   });
 
-  // 2. State
   const state = await prisma.stateMaster.upsert({
     where: { state_code: "MH" },
     update: {},
     create: { state_name: "Maharashtra", state_code: "MH", countryId: country.id, status: "ACTIVE", updated_at: new Date() },
   });
 
-  // 3. District
-  let district = await prisma.districtMaster.findFirst({ where: { district_code: "PUN" } });
-  if (!district) {
-    district = await prisma.districtMaster.create({
-      data: { district_name: "Pune", district_code: "PUN", stateId: state.id, status: "ACTIVE", updated_at: new Date() },
-    });
+  // 2. Districts & Talukas
+  const districts = ["Pune", "Mumbai", "Nagpur", "Nashik"];
+  const districtDocs = [];
+  for (const d of districts) {
+    let dist = await prisma.districtMaster.findFirst({ where: { district_code: d.substring(0, 3).toUpperCase() } });
+    if (!dist) {
+      dist = await prisma.districtMaster.create({
+        data: { district_name: d, district_code: d.substring(0, 3).toUpperCase(), stateId: state.id, status: "ACTIVE", updated_at: new Date() },
+      });
+    }
+    districtDocs.push(dist);
   }
 
-  // 4. Taluka
   let taluka = await prisma.talukaMaster.findFirst({ where: { taluka_code: "HVL" } });
   if (!taluka) {
     taluka = await prisma.talukaMaster.create({
-      data: { taluka_name: "Haveli", taluka_code: "HVL", districtId: district.id, status: "ACTIVE", updated_at: new Date() },
+      data: { taluka_name: "Haveli", taluka_code: "HVL", districtId: districtDocs[0].id, status: "ACTIVE", updated_at: new Date() },
     });
   }
 
-  // 5. AtPost
   let atpost = await prisma.atPostMaster.findFirst({ where: { atpost_code: "KOT001" } });
   if (!atpost) {
     atpost = await prisma.atPostMaster.create({
@@ -42,29 +44,38 @@ async function main() {
     });
   }
 
-  // 6. Company
-  const company = await prisma.companyMaster.upsert({
-    where: { company_name: "Shree Traders Pvt Ltd" },
-    update: {},
-    create: {
-      company_name: "Shree Traders Pvt Ltd",
-      company_address: "Plot 12, MIDC, Pune - 411019",
-      company_email_main: "info@shreetraders.com",
-      company_mobile: "9876543210",
-      company_gstin: "27AAPCS1234A1Z5",
-      company_pan_number: "AAPCS1234A",
-      company_website: "www.shreetraders.com",
-      status: "active",
-      atpost_id: atpost.id,
-      country_id: country.id,
-      district_id: district.id,
-      state_id: state.id,
-      taluka_id: taluka.id,
-      pincode: "411019",
-    },
-  });
+  // 3. Companies (3 Companies)
+  const companyData = [
+    { name: "Shree Traders Pvt Ltd", code: "STPL", email: "info@shreetraders.com" },
+    { name: "TechNova Solutions", code: "TNS", email: "contact@technova.com" },
+    { name: "Global Exports", code: "GEX", email: "sales@globalexports.in" }
+  ];
+  
+  const companies = [];
+  for (const cd of companyData) {
+    let comp = await prisma.companyMaster.findFirst({ where: { company_name: cd.name } });
+    if (!comp) {
+      comp = await prisma.companyMaster.create({
+        data: {
+          company_name: cd.name,
+          company_address: "MIDC Sector, " + cd.name,
+          company_email_main: cd.email,
+          company_mobile: "9876543210",
+          company_gstin: "27AAPCS1234A1Z5",
+          status: "active",
+          atpost_id: atpost.id,
+          country_id: country.id,
+          district_id: districtDocs[0].id,
+          state_id: state.id,
+          taluka_id: taluka.id,
+          pincode: "411019",
+        },
+      });
+    }
+    companies.push(comp);
+  }
 
-  // 7. User (no role yet)
+  // 4. Admin User
   let adminUser = await prisma.user_master.findFirst({ where: { user_name: "admin" } });
   if (!adminUser) {
     adminUser = await prisma.user_master.create({
@@ -72,89 +83,70 @@ async function main() {
         display_name: "Admin User",
         user_name: "admin",
         password_hash: "$2b$10$hashedpasswordhere",
-        companyId: company.id,
+        companyId: companies[0].id,
         status: "ACTIVE",
         updated_at: new Date(),
       },
     });
   }
 
-  // 8. Role
-  const role = await prisma.roleMaster.upsert({
-    where: { role_name: "Super Admin" },
-    update: {},
-    create: { role_name: "Super Admin", description: "Full access", user_id: adminUser.id, status: "ACTIVE" },
-  });
-
-  // Update user with role
-  await prisma.user_master.update({ where: { id: adminUser.id }, data: { role_id: role.id } });
-
-  // 9. Designation
+  // 5. Designation & Categories
   const desig = await prisma.designation_master.upsert({
     where: { designation_name: "Manager" },
     update: {},
     create: { designation_name: "Manager", user_id: adminUser.id, updated_at: new Date() },
   });
 
-  // 10. HSN Code
+  let custCat = await prisma.customer_category_master.findFirst({ where: { category_name: "Retail" } });
+  if (!custCat) {
+    custCat = await prisma.customer_category_master.create({
+      data: { category_name: "Retail", user_id: adminUser.id, updated_at: new Date() },
+    });
+  }
+
+  let custSubCat = await prisma.customer_sub_category_master.findFirst({ where: { subcategory_name: "Individual" } });
+  if (!custSubCat) {
+    custSubCat = await prisma.customer_sub_category_master.create({
+      data: { subcategory_name: "Individual", user_id: adminUser.id, category_id: custCat.id, updated_at: new Date() },
+    });
+  }
+
+  // 6. Products & Services
   const hsn = await prisma.hsnCodeMaster.upsert({
     where: { hsn_code_effective_date: { hsn_code: "4901", effective_date: new Date("2023-01-01") } },
     update: {},
-    create: {
-      hsn_code: "4901",
-      description: "Printed Books",
-      gst_rate: 5.0,
-      effective_date: new Date("2023-01-01"),
-      user_id: adminUser.id,
-      updated_at: new Date(),
-    },
+    create: { hsn_code: "4901", description: "Printed Goods", gst_rate: 5.0, effective_date: new Date("2023-01-01"), user_id: adminUser.id, updated_at: new Date() },
   });
 
-  // 11. Service
   const service = await prisma.serviceMaster.upsert({
-    where: { service_name: "Publication" },
+    where: { service_name: "Products" },
     update: {},
-    create: { service_name: "Publication", status: "ACTIVE", user_id: adminUser.id, updated_at: new Date() },
+    create: { service_name: "Products", status: "ACTIVE", user_id: adminUser.id, updated_at: new Date() },
   });
 
-  // 12. Product Category
-  let pcat = await prisma.productCategoryMaster.findFirst({ where: { product_category_name: "Books" } });
+  let pcat = await prisma.productCategoryMaster.findFirst({ where: { product_category_name: "General" } });
   if (!pcat) {
     pcat = await prisma.productCategoryMaster.create({
-      data: {
-        product_category_name: "Books",
-        service_id: service.id,
-        user_id: adminUser.id,
-        status: "ACTIVE",
-        hsn_id: hsn.id,
-      },
+      data: { product_category_name: "General", service_id: service.id, user_id: adminUser.id, status: "ACTIVE", hsn_id: hsn.id },
     });
   }
 
-  // 13. Product Sub Category
-  let psub = await prisma.productSubCategoryMaster.findFirst({ where: { product_sub_category_name: "Educational" } });
+  let psub = await prisma.productSubCategoryMaster.findFirst({ where: { product_sub_category_name: "Items" } });
   if (!psub) {
     psub = await prisma.productSubCategoryMaster.create({
-      data: {
-        product_sub_category_name: "Educational",
-        product_category_id: pcat.id,
-        user_id: adminUser.id,
-        status: "ACTIVE",
-        updated_at: new Date(),
-      },
+      data: { product_sub_category_name: "Items", product_category_id: pcat.id, user_id: adminUser.id, status: "ACTIVE", updated_at: new Date() },
     });
   }
 
-  // 14. Products
-  const productNames = ["Class 1 Maths", "Class 2 Science", "Class 3 English", "Class 4 Hindi", "Class 5 Social"];
+  // Generate 20 Products
   const products = [];
-  for (let i = 0; i < productNames.length; i++) {
-    let p = await prisma.productMaster.findFirst({ where: { product_code: `BOOK00${i + 1}` } });
+  for (let i = 1; i <= 20; i++) {
+    let p = await prisma.productMaster.findFirst({ where: { product_code: `PRD0${i}` } });
     if (!p) {
       p = await prisma.productMaster.create({
         data: {
-          product_name: productNames[i],
-          product_code: `BOOK00${i + 1}`,
+          product_name: `Enterprise Product ${i}`,
+          product_code: `PRD0${i}`,
           service_id: service.id,
           product_category_id: pcat.id,
           product_subcategory_id: psub.id,
@@ -166,49 +158,29 @@ async function main() {
     products.push(p);
   }
 
-  // 15. Customer Category
-  let custCat = await prisma.customer_category_master.findFirst({ where: { category_name: "Retail" } });
-  if (!custCat) {
-    custCat = await prisma.customer_category_master.create({
-      data: { category_name: "Retail", user_id: adminUser.id, updated_at: new Date() },
-    });
-  }
-
-  // 16. Customer Sub Category
-  let custSubCat = await prisma.customer_sub_category_master.findFirst({ where: { subcategory_name: "Individual" } });
-  if (!custSubCat) {
-    custSubCat = await prisma.customer_sub_category_master.create({
-      data: { subcategory_name: "Individual", user_id: adminUser.id, category_id: custCat.id, updated_at: new Date() },
-    });
-  }
-
-  // 17. Customers
-  const customerData = [
-    { code: "CUST001", name: "Rajesh Kumar Sharma", mobile: "9876500001", email: "rajesh@example.com" },
-    { code: "CUST002", name: "Priya Patel", mobile: "9876500002", email: "priya@example.com" },
-    { code: "CUST003", name: "Vikram Singh", mobile: "9876500003", email: "vikram@example.com" },
-    { code: "CUST004", name: "Sunita Devi", mobile: "9876500004", email: "sunita@example.com" },
-    { code: "CUST005", name: "Amit Joshi", mobile: "9876500005", email: "amit@example.com" },
-    { code: "CUST006", name: "Meena Gupta", mobile: "9876500006", email: "meena@example.com" },
-    { code: "CUST007", name: "Ravi Verma", mobile: "9876500007", email: "ravi@example.com" },
-    { code: "CUST008", name: "Kavita Mishra", mobile: "9876500008", email: "kavita@example.com" },
-    { code: "CUST009", name: "Suresh Yadav", mobile: "9876500009", email: "suresh@example.com" },
-    { code: "CUST010", name: "Anjali Thakur", mobile: "9876500010", email: "anjali@example.com" },
-  ];
-
+  // 7. Customers (55 Customers)
+  const firstNames = ["Raj", "Amit", "Priya", "Neha", "Rahul", "Vikram", "Sneha", "Karan", "Pooja", "Arun", "Suresh", "Meena", "Ravi", "Anjali", "Sanjay", "Kavita", "Gaurav", "Nisha", "Manoj", "Kiran"];
+  const lastNames = ["Sharma", "Patel", "Singh", "Kumar", "Gupta", "Joshi", "Deshmukh", "Verma", "Thakur", "Yadav", "Mishra", "Pandey", "Chauhan", "Bose", "Reddy", "Nair", "Iyer", "Rao", "Das", "Roy"];
+  
   const customers = [];
-  for (const cd of customerData) {
-    let c = await prisma.customerMaster.findFirst({ where: { customer_code: cd.code } });
+  const contacts = [];
+  
+  for (let i = 1; i <= 55; i++) {
+    const name = `${firstNames[i % firstNames.length]} ${lastNames[i % lastNames.length]} ${i}`;
+    const code = `CUST${String(i).padStart(4, "0")}`;
+    const mobile = `9876${String(Math.floor(Math.random() * 1000000)).padStart(6, "0")}`;
+    
+    let c = await prisma.customerMaster.findFirst({ where: { customer_code: code } });
     if (!c) {
       c = await prisma.customerMaster.create({
         data: {
-          customer_code: cd.code,
-          customer_name: cd.name,
-          mobile_number: cd.mobile,
-          email: cd.email,
+          customer_code: code,
+          customer_name: name,
+          mobile_number: mobile,
+          email: `user${i}@example.com`,
           country_id: country.id,
           state_id: state.id,
-          district_id: district.id,
+          district_id: districtDocs[i % districtDocs.length].id,
           taluka_id: taluka.id,
           at_post_id: atpost.id,
           category_id: custCat.id,
@@ -220,19 +192,15 @@ async function main() {
       });
     }
     customers.push(c);
-  }
 
-  // 18. Contact Details
-  const contacts = [];
-  for (const cust of customers) {
-    let contact = await prisma.customerContactDetailMaster.findFirst({ where: { customer_id: cust.id } });
+    let contact = await prisma.customerContactDetailMaster.findFirst({ where: { customer_id: c.id } });
     if (!contact) {
       contact = await prisma.customerContactDetailMaster.create({
         data: {
-          contact_person_name: cust.customer_name,
-          contact_person_number: cust.mobile_number || "9999999999",
+          contact_person_name: name,
+          contact_person_number: mobile,
           contact_type: "Primary",
-          customer_id: cust.id,
+          customer_id: c.id,
           designation_id: desig.id,
           updated_at: new Date(),
         },
@@ -241,35 +209,33 @@ async function main() {
     contacts.push(contact);
   }
 
-  // 19. Subscription Period
-  let subPeriod = await prisma.subscription_period_master.findFirst({ where: { period_value: 12, period_type: "Month" } });
-  if (!subPeriod) {
-    subPeriod = await prisma.subscription_period_master.create({
-      data: { period_value: 12, period_type: "Month", user_id: adminUser.id, updated_at: new Date() },
-    });
-  }
-
-  // 20. Orders - generate for last 6 months
-  const statuses = ["CONFIRMED", "PENDING", "DISPATCHED", "DELIVERED", "CANCELLED"];
+  // 8. Orders & Invoices (150 Orders across 12 months)
+  const statuses = ["CONFIRMED", "DELIVERED", "DELIVERED", "PENDING", "DISPATCHED", "CANCELLED"];
   let orderCount = 0;
 
-  for (let m = 5; m >= 0; m--) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - m);
-    date.setDate(Math.ceil(Math.random() * 28));
+  for (let m = 11; m >= 0; m--) {
+    const ordersThisMonth = Math.floor(Math.random() * 10) + 10; // 10-20 orders per month
 
-    for (let o = 0; o < 4; o++) {
+    for (let o = 0; o < ordersThisMonth; o++) {
       orderCount++;
-      const cust = customers[orderCount % customers.length];
-      const contact = contacts[orderCount % contacts.length];
-      const status = statuses[o % statuses.length];
-      const qty = Math.ceil(Math.random() * 10) + 1;
-      const rate = 250.0;
+      const date = new Date();
+      date.setMonth(date.getMonth() - m);
+      date.setDate(Math.floor(Math.random() * 28) + 1);
+
+      const custIdx = Math.floor(Math.random() * customers.length);
+      const cust = customers[custIdx];
+      const contact = contacts[custIdx];
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+      const comp = companies[Math.floor(Math.random() * companies.length)];
+      
+      const qty = Math.floor(Math.random() * 50) + 5;
+      const rate = Math.floor(Math.random() * 1000) + 100;
       const taxable = qty * rate;
       const cgst = taxable * 0.025;
       const sgst = taxable * 0.025;
       const total = taxable + cgst + sgst;
-      const voucherNo = `ORD-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}-${String(orderCount).padStart(4, "0")}`;
+      
+      const voucherNo = `ORD-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}-${String(orderCount).padStart(5, "0")}`;
 
       let order = await prisma.orderMaster.findFirst({ where: { order_voucher_no: voucherNo } });
       if (!order) {
@@ -283,16 +249,16 @@ async function main() {
             total_tax_amount: cgst + sgst,
             grand_total_amount: total,
             user_id: adminUser.id,
-            company_id: company.id,
+            company_id: comp.id,
             status,
+            created_at: date,
           },
         });
 
-        // Order item
         await prisma.orderItemDetail.create({
           data: {
             order_id: order.id,
-            product_id: products[o % products.length].id,
+            product_id: products[Math.floor(Math.random() * products.length)].id,
             rate,
             quantity: qty,
             taxable_amount: taxable,
@@ -305,15 +271,26 @@ async function main() {
             sgst_amount: sgst,
             igst_rate: 0,
             igst_amount: 0,
+            created_at: date,
           },
         });
 
-        // Invoice for confirmed/delivered orders
         if (["CONFIRMED", "DELIVERED", "DISPATCHED"].includes(status)) {
-          const invoiceNo = `INV-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}-${String(orderCount).padStart(4, "0")}`;
-          const paid = status === "DELIVERED" ? total : total * 0.5;
+          const invoiceNo = `INV-${voucherNo.split("-")[1]}-${voucherNo.split("-")[2]}`;
+          // Randomized payment scenarios
+          const paymentScenario = Math.random();
+          let paid = 0;
+          let payStatus = "UNPAID";
+
+          if (paymentScenario > 0.4) {
+             paid = total; // Fully paid
+             payStatus = "PAID";
+          } else if (paymentScenario > 0.2) {
+             paid = total * 0.5; // 50% paid
+             payStatus = "PARTIAL";
+          }
+
           const balance = total - paid;
-          const payStatus = status === "DELIVERED" ? "PAID" : paid > 0 ? "PARTIAL" : "UNPAID";
 
           const inv = await prisma.invoiceMaster.upsert({
             where: { invoice_number: invoiceNo },
@@ -328,13 +305,16 @@ async function main() {
               payment_status: payStatus,
               status: "ISSUED",
               user_id: adminUser.id,
-              company_id: company.id,
+              company_id: comp.id,
+              created_at: date,
             },
           });
 
-          // Receipt for paid ones
           if (paid > 0) {
-            const receiptNo = `RCP-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}-${String(orderCount).padStart(4, "0")}`;
+            const receiptNo = `RCP-${invoiceNo.split("-")[1]}-${invoiceNo.split("-")[2]}`;
+            const modes = ["ONLINE", "CHEQUE", "CASH"];
+            const mode = modes[Math.floor(Math.random() * modes.length)];
+            
             await prisma.receiptMaster.upsert({
               where: { receipt_voucher_no: receiptNo },
               update: {},
@@ -344,13 +324,14 @@ async function main() {
                 instrument_date: date,
                 customer_id: cust.id,
                 invoice_id: inv.id,
-                mode: "ONLINE",
-                sub_mode: "UPI",
+                mode: mode,
+                sub_mode: mode === "ONLINE" ? "UPI" : mode === "CHEQUE" ? "CLEARING" : "HAND",
                 total_amount: paid,
                 amount: paid,
                 unused_amount: 0,
                 status: "CLEARED",
                 user_id: adminUser.id,
+                created_at: date,
                 updated_at: new Date(),
               },
             });
@@ -360,18 +341,28 @@ async function main() {
     }
   }
 
-  // 21. Subscriptions
-  for (let i = 0; i < 5; i++) {
-    const cust = customers[i];
-    const contact = contacts[i];
+  // 9. Subscriptions (60 Subscriptions)
+  let subPeriod = await prisma.subscription_period_master.findFirst({ where: { period_value: 12, period_type: "Month" } });
+  if (!subPeriod) {
+    subPeriod = await prisma.subscription_period_master.create({
+      data: { period_value: 12, period_type: "Month", user_id: adminUser.id, updated_at: new Date() },
+    });
+  }
+
+  for (let i = 1; i <= 60; i++) {
+    const cust = customers[i % customers.length];
+    const contact = contacts[i % contacts.length];
     const date = new Date();
-    date.setMonth(date.getMonth() - i);
+    date.setMonth(date.getMonth() - (i % 12));
+    date.setDate(Math.floor(Math.random() * 28) + 1);
+    
     const start = new Date(date);
     const valid = new Date(start);
     valid.setFullYear(valid.getFullYear() + 1);
-    const subNo = `SUB-2025-${String(i + 1).padStart(4, "0")}`;
-    const qty = 5;
-    const rate = 2500.0;
+    
+    const subNo = `SUB-2025-${String(i).padStart(4, "0")}`;
+    const qty = Math.floor(Math.random() * 10) + 1;
+    const rate = 5000.0;
     const taxable = qty * rate;
     const cgst = taxable * 0.025;
     const sgst = taxable * 0.025;
@@ -391,9 +382,10 @@ async function main() {
           sub_total: taxable,
           total_tax_amount: cgst + sgst,
           grand_total_amount: total,
-          status: i < 3 ? "CONFIRMED" : "PENDING",
-          validity_status: i < 4 ? "VALID" : "EXPIRED",
+          status: i % 5 === 0 ? "PENDING" : "CONFIRMED",
+          validity_status: valid < new Date() ? "EXPIRED" : "VALID",
           user_id: adminUser.id,
+          created_at: date,
           updated_at: new Date(),
         },
       });
@@ -420,7 +412,7 @@ async function main() {
     }
   }
 
-  console.log("✅ Seed complete!");
+  console.log("✅ Mega Seed complete! 55 Customers, 150+ Orders, 60 Subscriptions.");
 }
 
 main()

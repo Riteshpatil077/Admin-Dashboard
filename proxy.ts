@@ -1,8 +1,8 @@
-// middleware.ts
+// proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(req: NextRequest) {
+export default function proxy(req: NextRequest) {
     // ✅ Skip all /api routes
     if (req.nextUrl.pathname.startsWith("/api/")) {
         return NextResponse.next();
